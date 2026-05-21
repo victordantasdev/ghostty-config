@@ -61,23 +61,10 @@ so the running terminal updates immediately.`,
 }
 
 func run(opts ghostty.Options) error {
-	var err error
-	opts.ConfigPath, err = filepath.Abs(ghostty.ExpandHome(opts.ConfigPath))
-	if err != nil {
-		return err
-	}
-	opts.ShaderDir, err = filepath.Abs(ghostty.ExpandHome(opts.ShaderDir))
-	if err != nil {
-		return err
-	}
-	opts.UserThemeDir, err = filepath.Abs(ghostty.ExpandHome(opts.UserThemeDir))
-	if err != nil {
-		return err
-	}
-	opts.SystemThemeDir, err = filepath.Abs(ghostty.ExpandHome(opts.SystemThemeDir))
-	if err != nil {
-		return err
-	}
+	opts.ConfigPath, _ = filepath.Abs(ghostty.ExpandHome(opts.ConfigPath))
+	opts.ShaderDir, _ = filepath.Abs(ghostty.ExpandHome(opts.ShaderDir))
+	opts.UserThemeDir, _ = filepath.Abs(ghostty.ExpandHome(opts.UserThemeDir))
+	opts.SystemThemeDir, _ = filepath.Abs(ghostty.ExpandHome(opts.SystemThemeDir))
 
 	if err := extractBundledIfMissing(opts.ShaderDir, "shaders"); err != nil {
 		return err
@@ -87,11 +74,20 @@ func run(opts ghostty.Options) error {
 	}
 
 	root := app.New(opts, version)
-	_, err = tea.NewProgram(root, tea.WithAltScreen()).Run()
+	_, err := tea.NewProgram(root, tea.WithAltScreen()).Run()
 	return err
 }
 
 func extractBundledIfMissing(destDir, embedRoot string) error {
+	return extractFSIfMissing(ghosttyconfig.Bundled, destDir, embedRoot)
+}
+
+type readFileFS interface {
+	fs.FS
+	ReadFile(name string) ([]byte, error)
+}
+
+func extractFSIfMissing(src readFileFS, destDir, embedRoot string) error {
 	if _, err := os.Stat(destDir); err == nil {
 		return nil
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -102,14 +98,11 @@ func extractBundledIfMissing(destDir, embedRoot string) error {
 		return err
 	}
 
-	return fs.WalkDir(ghosttyconfig.Bundled, embedRoot, func(path string, d fs.DirEntry, err error) error {
+	return fs.WalkDir(src, embedRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		rel, err := filepath.Rel(embedRoot, path)
-		if err != nil {
-			return err
-		}
+		rel, _ := filepath.Rel(embedRoot, path)
 		if rel == "." {
 			return nil
 		}
@@ -117,7 +110,7 @@ func extractBundledIfMissing(destDir, embedRoot string) error {
 		if d.IsDir() {
 			return os.MkdirAll(target, 0o755)
 		}
-		data, err := ghosttyconfig.Bundled.ReadFile(path)
+		data, err := src.ReadFile(path)
 		if err != nil {
 			return err
 		}

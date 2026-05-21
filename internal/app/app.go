@@ -11,7 +11,7 @@ import (
 	"ghostty-config/internal/ui"
 )
 
-const toastDuration = 1100 * time.Millisecond
+var toastDuration = 1100 * time.Millisecond
 
 type toastState struct {
 	text  string

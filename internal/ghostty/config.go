@@ -38,9 +38,6 @@ func ReadActiveValues(configPath, key string) []string {
 			continue
 		}
 		parts := strings.SplitN(trimmed, "=", 2)
-		if len(parts) != 2 {
-			continue
-		}
 		value := strings.Trim(strings.TrimSpace(parts[1]), `"'`)
 		if value == "" {
 			continue
@@ -215,6 +212,17 @@ func writeKeyValues(b *strings.Builder, key string, values []string) {
 	}
 }
 
+var (
+	currentGOOS = runtime.GOOS
+	osReload    = osReloadDefault
+	reloadSleep = 35 * time.Millisecond
+)
+
+func osReloadDefault() error {
+	cmd := exec.Command("osascript", "-e", `tell application "System Events" to keystroke "," using {command down, shift down}`)
+	return cmd.Run()
+}
+
 func Reload(opts Options) error {
 	if opts.NoReload {
 		return nil
@@ -225,16 +233,15 @@ func Reload(opts Options) error {
 		return cmd.Run()
 	}
 
-	if runtime.GOOS != "darwin" {
+	if currentGOOS != "darwin" {
 		return fmt.Errorf("automatic reload is only built in for macOS; pass --reload-command or --no-reload")
 	}
 
-	cmd := exec.Command("osascript", "-e", `tell application "System Events" to keystroke "," using {command down, shift down}`)
-	if err := cmd.Run(); err != nil {
+	if err := osReload(); err != nil {
 		return fmt.Errorf("reload failed (grant Ghostty/terminal Accessibility permission, use --reload-command, or --no-reload): %w", err)
 	}
 
-	time.Sleep(35 * time.Millisecond)
+	time.Sleep(reloadSleep)
 	return nil
 }
 

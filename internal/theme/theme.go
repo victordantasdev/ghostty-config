@@ -269,12 +269,8 @@ func (m Model) ensureCursorMatches() (Model, tea.Cmd) {
 			return m, nil
 		}
 	}
-	prev := m.cursors[m.active]
 	m.cursors[m.active] = idxs[0]
-	if m.cursors[m.active] != prev {
-		return m, previewCmd(m.opts, m.previewName())
-	}
-	return m, nil
+	return m, previewCmd(m.opts, m.previewName())
 }
 
 func slotLabelFor(i int) string {
@@ -612,10 +608,7 @@ func collectThemes(dir, source string, byName map[string]option) error {
 		if strings.HasPrefix(d.Name(), ".") {
 			return nil
 		}
-		abs, err := filepath.Abs(path)
-		if err != nil {
-			return err
-		}
+		abs, _ := filepath.Abs(path)
 		name := d.Name()
 		if existing, ok := byName[name]; ok && existing.Source == "user" {
 			return nil

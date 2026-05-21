@@ -416,12 +416,8 @@ func (m Model) ensureCursorMatches() (Model, tea.Cmd) {
 			return m, nil
 		}
 	}
-	prev := slot.cursor
 	slot.cursor = idxs[0]
-	if slot.cursor != prev {
-		return m, m.previewIfSingle()
-	}
-	return m, nil
+	return m, m.previewIfSingle()
 }
 
 func slotLabel(i int) string {
@@ -699,16 +695,10 @@ func discoverShaders(configPath, shaderDir string) ([]option, []option, error) {
 			return nil
 		}
 
-		abs, err := filepath.Abs(path)
-		if err != nil {
-			return err
-		}
+		abs, _ := filepath.Abs(path)
 		rel := pathForConfig(configPath, abs)
 
-		name, err := filepath.Rel(shaderDir, abs)
-		if err != nil {
-			name = filepath.Base(abs)
-		}
+		name, _ := filepath.Rel(shaderDir, abs)
 		opt := option{Name: filepath.ToSlash(name), Path: abs, Rel: rel}
 		if isCursorShader(filepath.Base(abs)) {
 			opt.Kind = kindCursor
@@ -751,10 +741,7 @@ func readCurrentShaders(configPath string) ([]string, string) {
 		if !filepath.IsAbs(raw) {
 			raw = filepath.Join(configDir, raw)
 		}
-		abs, err := filepath.Abs(raw)
-		if err != nil {
-			abs = raw
-		}
+		abs, _ := filepath.Abs(raw)
 		abs = filepath.Clean(abs)
 		if isCursorShader(filepath.Base(abs)) {
 			if cursorPath == "" {
