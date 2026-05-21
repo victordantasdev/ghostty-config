@@ -24,6 +24,37 @@ Ghostty supports `custom-shader` entries (GLSL post-processing effects) and `the
 
 ## Installation
 
+### Install the prebuilt binary (macOS arm64)
+
+The repository ships a prebuilt, self-contained binary at `dist/ghostty-config` (Apple Silicon only — shaders and themes are embedded into the binary via `//go:embed`, so no extra files are needed at runtime).
+
+Clone the repo and install it onto your `$PATH`:
+
+```sh
+git clone https://github.com/victordantasdev/ghostty-config.git
+cd ghostty-config
+sudo install -m 755 dist/ghostty-config /usr/local/bin/ghostty-config
+```
+
+Or, without `sudo`, into a user-owned directory:
+
+```sh
+mkdir -p ~/.local/bin
+install -m 755 dist/ghostty-config ~/.local/bin/ghostty-config
+# make sure ~/.local/bin is on your PATH (zsh):
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+```
+
+The binary is not codesigned or notarized, so on first launch macOS Gatekeeper will block it with *"cannot be opened because the developer cannot be verified."* Clear the quarantine attribute once:
+
+```sh
+xattr -d com.apple.quarantine "$(command -v ghostty-config)"
+```
+
+Alternatively, run it once, then approve it under *System Settings → Privacy & Security → "Open Anyway"*.
+
+If you are on an Intel Mac (`uname -m` reports `x86_64`) or on Linux, the prebuilt binary will not run — build from source with one of the options below.
+
 ### Build a local binary
 
 ```sh
