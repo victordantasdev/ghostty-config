@@ -86,7 +86,7 @@ func run(opts ghostty.Options) error {
 		return err
 	}
 
-	root := app.New(opts)
+	root := app.New(opts, version)
 	_, err = tea.NewProgram(root, tea.WithAltScreen()).Run()
 	return err
 }

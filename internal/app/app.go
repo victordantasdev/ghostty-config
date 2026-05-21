@@ -1,6 +1,8 @@
 package app
 
 import (
+	"time"
+
 	tea "github.com/charmbracelet/bubbletea"
 
 	"ghostty-config/internal/ghostty"
@@ -9,8 +11,17 @@ import (
 	"ghostty-config/internal/ui"
 )
 
+const toastDuration = 1100 * time.Millisecond
+
+type toastState struct {
+	text  string
+	kind  ui.ToastKind
+	token int
+}
+
 type App struct {
 	opts     ghostty.Options
+	version  string
 	current  ui.Screen
 	width    int
 	height   int
@@ -19,13 +30,19 @@ type App struct {
 	menu   menuModel
 	shader *shader.Model
 	theme  *theme.Model
+
+	help       helpModel
+	helpOpen   bool
+	toast      *toastState
+	toastNonce int
 }
 
-func New(opts ghostty.Options) App {
+func New(opts ghostty.Options, version string) App {
 	return App{
 		opts:    opts,
+		version: version,
 		current: ui.ScreenMenu,
-		menu:    newMenuModel(),
+		menu:    newMenuModel(opts.ConfigPath, version),
 	}
 }
 
@@ -38,6 +55,8 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		a.width = m.Width
 		a.height = m.Height
+		a.menu.width = m.Width
+		a.help.width = m.Width
 		if a.shader != nil {
 			a.shader.SetSize(m.Width, m.Height)
 		}
@@ -49,6 +68,35 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ui.QuitAppMsg:
 		a.quitting = true
 		return a, tea.Quit
+	case ui.OpenHelpMsg:
+		a.helpOpen = true
+		return a, nil
+	case ui.CloseHelpMsg:
+		a.helpOpen = false
+		return a, nil
+	case ui.ShowToastMsg:
+		a.toastNonce++
+		a.toast = &toastState{text: m.Text, kind: m.Kind, token: a.toastNonce}
+		token := a.toastNonce
+		return a, tea.Tick(toastDuration, func(time.Time) tea.Msg {
+			return ui.ClearToastMsg{Token: token}
+		})
+	case ui.ClearToastMsg:
+		if a.toast != nil && a.toast.token == m.Token {
+			a.toast = nil
+		}
+		return a, nil
+	}
+
+	if a.helpOpen {
+		nh, cmd := a.help.Update(msg)
+		a.help = nh
+		return a, cmd
+	}
+
+	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "?" {
+		a.helpOpen = true
+		return a, nil
 	}
 
 	switch a.current {
@@ -79,6 +127,8 @@ func (a App) switchTo(target ui.Screen) (tea.Model, tea.Cmd) {
 	case ui.ScreenMenu:
 		a.current = ui.ScreenMenu
 		a.menu.errorMsg = ""
+		a.shader = nil
+		a.theme = nil
 		return a, nil
 	case ui.ScreenShader:
 		if a.shader == nil {
@@ -114,19 +164,26 @@ func (a App) View() string {
 	if a.quitting {
 		return ""
 	}
+	if a.helpOpen {
+		return a.help.View()
+	}
+
+	var body string
 	switch a.current {
 	case ui.ScreenMenu:
-		return a.menu.View()
+		body = a.menu.View()
 	case ui.ScreenShader:
-		if a.shader == nil {
-			return ""
+		if a.shader != nil {
+			body = a.shader.View()
 		}
-		return a.shader.View()
 	case ui.ScreenTheme:
-		if a.theme == nil {
-			return ""
+		if a.theme != nil {
+			body = a.theme.View()
 		}
-		return a.theme.View()
 	}
-	return ""
+
+	if a.toast != nil {
+		return ui.RenderToast(a.toast.text, a.toast.kind) + "\n" + body
+	}
+	return body
 }

@@ -7,12 +7,15 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
 	"ghostty-config/internal/ghostty"
 	"ghostty-config/internal/ui"
 )
+
+const toastDelay = 850 * time.Millisecond
 
 type kind int
 
@@ -187,6 +190,31 @@ func (m *Model) InitCmd() tea.Cmd {
 	return previewCmd(m.opts, m.currentSelection())
 }
 
+func (m Model) slotDirty(i int) bool {
+	s := m.slots[i]
+	if s.multi {
+		if len(s.selected) != len(s.selectedInit) {
+			return true
+		}
+		for k, v := range s.selected {
+			if v != s.selectedInit[k] {
+				return true
+			}
+		}
+		return false
+	}
+	return s.cursor != s.initialCur
+}
+
+func (m Model) isDirty() bool {
+	for i := 0; i < numSlots; i++ {
+		if m.slotDirty(i) {
+			return true
+		}
+	}
+	return false
+}
+
 func (m Model) currentSelection() selection {
 	sel := selection{globals: m.slots[0].effective()}
 	cursorEff := m.slots[1].effective()
@@ -226,9 +254,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, restoreAndQuitCmd(m.opts, m.initialSelection())
 		case "esc", "q":
-			return m, restoreAndBackCmd(m.opts, m.initialSelection())
-		case "enter":
-			return m, func() tea.Msg { return ui.SwitchScreenMsg{Target: ui.ScreenMenu} }
+			return m, restoreAndBackCmd(m.opts, m.initialSelection(), m.isDirty())
+		case "enter", "ctrl+s":
+			return m, commitAndBackCmd(m.currentSelection(), m.isDirty())
 		case "tab", "shift+tab", "right", "left", "l", "h":
 			m.active = (m.active + 1) % numSlots
 			m.query = ""
@@ -405,15 +433,25 @@ func slotLabel(i int) string {
 
 func (m Model) View() string {
 	var b strings.Builder
-	b.WriteString(ui.TitleStyle.Render("Shaders"))
-	b.WriteString("  ")
-	b.WriteString(ui.MutedStyle.Render("(Enter: keep • Esc/q: cancel and back to menu)"))
-	b.WriteString("\n")
+	b.WriteString(ui.RenderBreadcrumb("Ghostty configurator", "Shaders"))
+	b.WriteByte('\n')
+
+	dirty := m.isDirty()
+	if dirty {
+		b.WriteString(ui.RenderWarnBanner("UNSAVED PREVIEW — press Enter to keep, Esc to revert"))
+	} else {
+		b.WriteString(ui.CleanCheckStyle.Render("✓ Saved state · navigate to preview new shaders"))
+	}
+	b.WriteByte('\n')
 
 	var tabs []string
 	for i := 0; i < numSlots; i++ {
 		slot := m.slots[i]
-		label := slotLabel(i) + ": " + slotSummary(slot)
+		marker := ui.CleanCheckStyle.Render(" ✓")
+		if m.slotDirty(i) {
+			marker = ui.DirtyDotStyle.Render(" ●")
+		}
+		label := slotLabel(i) + ": " + slotSummary(slot) + marker
 		if i == m.active {
 			tabs = append(tabs, ui.ActiveTabStyle.Render("▸ "+label))
 		} else {
@@ -421,24 +459,12 @@ func (m Model) View() string {
 		}
 	}
 	b.WriteString(strings.Join(tabs, " "))
-	b.WriteString("\n")
+	b.WriteByte('\n')
 
 	if m.searching {
 		b.WriteString(ui.MutedStyle.Render("type to filter  •  ↑/↓: navigate  •  Enter: apply filter  •  Backspace: delete  •  Ctrl+U: clear  •  Esc: exit search"))
-	} else {
-		hint := "↑/↓ or j/k: navigate"
-		if m.slots[m.active].multi {
-			hint += "  •  Space: toggle"
-		} else {
-			hint += " & preview"
-		}
-		hint += "  •  Tab: switch slot  •  /: search"
-		if m.query != "" {
-			hint += " (filter active)"
-		}
-		b.WriteString(ui.MutedStyle.Render(hint))
+		b.WriteByte('\n')
 	}
-	b.WriteString("\n")
 	if m.searching || m.query != "" {
 		cursor := ""
 		if m.searching {
@@ -510,11 +536,14 @@ func (m Model) View() string {
 	if status == "" {
 		status = "ready"
 	}
-	if m.statusGood {
-		b.WriteString(ui.SuccessStyle.Render(status))
-	} else if m.lastErr != nil {
+	switch {
+	case m.lastErr != nil:
 		b.WriteString(ui.ErrorStyle.Render(status))
-	} else {
+	case dirty && m.statusGood:
+		b.WriteString(ui.WarnStyle.Render("► " + status + " — not saved yet (press Enter to keep)"))
+	case m.statusGood:
+		b.WriteString(ui.SuccessStyle.Render(status))
+	default:
 		b.WriteString(ui.MutedStyle.Render(status))
 	}
 	b.WriteByte('\n')
@@ -526,6 +555,26 @@ func (m Model) View() string {
 			b.WriteByte('\n')
 		}
 	}
+
+	b.WriteByte('\n')
+	footerWidth := m.width
+	if footerWidth < 1 {
+		footerWidth = 80
+	}
+	actions := []ui.FooterAction{
+		{Key: "ENTER", Label: "Save", Variant: ui.FooterSave},
+		{Key: "ESC", Label: "Cancel & revert", Variant: ui.FooterCancel},
+	}
+	if m.slots[m.active].multi {
+		actions = append(actions, ui.FooterAction{Key: "SPACE", Label: "Toggle", Variant: ui.FooterDefault})
+	}
+	actions = append(actions,
+		ui.FooterAction{Key: "TAB", Label: "Switch slot", Variant: ui.FooterDefault},
+		ui.FooterAction{Key: "/", Label: "Search", Variant: ui.FooterDefault},
+		ui.FooterAction{Key: "?", Label: "Help", Variant: ui.FooterDefault},
+	)
+	b.WriteString(ui.RenderFooter(footerWidth, actions))
+	b.WriteByte('\n')
 
 	return b.String()
 }
@@ -579,11 +628,31 @@ func previewCmd(opts ghostty.Options, sel selection) tea.Cmd {
 	}
 }
 
-func restoreAndBackCmd(opts ghostty.Options, sel selection) tea.Cmd {
-	return func() tea.Msg {
-		_ = applyPreview(opts, sel)
-		return ui.SwitchScreenMsg{Target: ui.ScreenMenu}
+func commitAndBackCmd(sel selection, dirty bool) tea.Cmd {
+	toast := func() tea.Msg {
+		if dirty {
+			return ui.ShowToastMsg{Text: "Saved · " + selectionLabel(sel), Kind: ui.ToastSaved}
+		}
+		return ui.ShowToastMsg{Text: "No changes", Kind: ui.ToastInfo}
 	}
+	back := tea.Tick(toastDelay, func(time.Time) tea.Msg {
+		return ui.SwitchScreenMsg{Target: ui.ScreenMenu}
+	})
+	return tea.Batch(toast, back)
+}
+
+func restoreAndBackCmd(opts ghostty.Options, sel selection, dirty bool) tea.Cmd {
+	restore := func() tea.Msg {
+		_ = applyPreview(opts, sel)
+		if dirty {
+			return ui.ShowToastMsg{Text: "Reverted to previous shaders", Kind: ui.ToastReverted}
+		}
+		return ui.ShowToastMsg{Text: "No changes", Kind: ui.ToastInfo}
+	}
+	back := tea.Tick(toastDelay, func(time.Time) tea.Msg {
+		return ui.SwitchScreenMsg{Target: ui.ScreenMenu}
+	})
+	return tea.Batch(restore, back)
 }
 
 func restoreAndQuitCmd(opts ghostty.Options, sel selection) tea.Cmd {

@@ -13,3 +13,24 @@ type SwitchScreenMsg struct {
 }
 
 type QuitAppMsg struct{}
+
+type ToastKind int
+
+const (
+	ToastSaved ToastKind = iota
+	ToastReverted
+	ToastInfo
+)
+
+type ShowToastMsg struct {
+	Text string
+	Kind ToastKind
+}
+
+type ClearToastMsg struct {
+	Token int
+}
+
+type OpenHelpMsg struct{}
+
+type CloseHelpMsg struct{}
