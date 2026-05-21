@@ -24,36 +24,41 @@ Ghostty supports `custom-shader` entries (GLSL post-processing effects) and `the
 
 ## Installation
 
-### Install the prebuilt binary (macOS arm64)
+### Download a prebuilt binary
 
-The repository ships a prebuilt, self-contained binary at `dist/ghostty-config` (Apple Silicon only — shaders and themes are embedded into the binary via `//go:embed`, so no extra files are needed at runtime).
+Each tagged release publishes self-contained binaries for **macOS (Intel and Apple Silicon)** and **Linux (amd64 and arm64)** on the [Releases page](https://github.com/victordantasdev/ghostty-config/releases). Shaders and themes are embedded in the binary via `//go:embed` and seeded to `~/.config/ghostty/` on first launch — no extra files needed.
 
-Clone the repo and install it onto your `$PATH`:
+Pick the archive that matches your platform (`darwin_arm64`, `darwin_x86_64`, `linux_arm64`, `linux_x86_64`), extract, and install:
 
 ```sh
-git clone https://github.com/victordantasdev/ghostty-config.git
-cd ghostty-config
-sudo install -m 755 dist/ghostty-config /usr/local/bin/ghostty-config
+# macOS arm64 example — adjust the URL for your platform and the latest tag
+VERSION=v0.1.0
+curl -sSL "https://github.com/victordantasdev/ghostty-config/releases/download/${VERSION}/ghostty-config_${VERSION#v}_darwin_arm64.tar.gz" \
+  | tar -xz ghostty-config
+sudo install -m 755 ghostty-config /usr/local/bin/ghostty-config
+rm ghostty-config
 ```
 
-Or, without `sudo`, into a user-owned directory:
+Or, without `sudo`, into a user-owned directory on your `$PATH`:
 
 ```sh
 mkdir -p ~/.local/bin
-install -m 755 dist/ghostty-config ~/.local/bin/ghostty-config
+install -m 755 ghostty-config ~/.local/bin/ghostty-config
 # make sure ~/.local/bin is on your PATH (zsh):
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
 ```
 
-The binary is not codesigned or notarized, so on first launch macOS Gatekeeper will block it with *"cannot be opened because the developer cannot be verified."* Clear the quarantine attribute once:
+On macOS, the binaries are not codesigned or notarized, so on first launch Gatekeeper will block them with *"cannot be opened because the developer cannot be verified."* Clear the quarantine attribute once:
 
 ```sh
 xattr -d com.apple.quarantine "$(command -v ghostty-config)"
 ```
 
-Alternatively, run it once, then approve it under *System Settings → Privacy & Security → "Open Anyway"*.
+Verify the install:
 
-If you are on an Intel Mac (`uname -m` reports `x86_64`) or on Linux, the prebuilt binary will not run — build from source with one of the options below.
+```sh
+ghostty-config --version
+```
 
 ### Build a local binary
 
