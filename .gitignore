@@ -1,0 +1,10 @@
+# Build output
+/dist/
+
+# OS junk
+.DS_Store
+
+# Editor folders
+.idea/
+.vscode/
+*.swp
