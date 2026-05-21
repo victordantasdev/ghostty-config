@@ -8,8 +8,7 @@
 
 A CLI for configuring [Ghostty](https://ghostty.org) — pick GLSL shaders and color themes from a curated list, audition them live in the running terminal, and have your selections written back to `~/.config/ghostty/config` automatically. Written in Go on top of [Bubble Tea](https://github.com/charmbracelet/bubbletea), [Lip Gloss](https://github.com/charmbracelet/lipgloss), and [Cobra](https://github.com/spf13/cobra).
 
-
-https://github.com/user-attachments/assets/b26f4d18-5539-43b2-9726-401752a854d9
+https://github.com/user-attachments/assets/3aa9ab84-a002-4ed9-828f-9c3c4f58a8f9
 
 ## What it does
 
