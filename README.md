@@ -1,5 +1,11 @@
 # ghostty-config
 
+[![CI](https://github.com/victordantasdev/ghostty-config/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/victordantasdev/ghostty-config/actions/workflows/ci.yml)
+[![Release](https://github.com/victordantasdev/ghostty-config/actions/workflows/release.yml/badge.svg)](https://github.com/victordantasdev/ghostty-config/actions/workflows/release.yml)
+[![Latest release](https://img.shields.io/github/v/release/victordantasdev/ghostty-config?label=release&sort=semver)](https://github.com/victordantasdev/ghostty-config/releases/latest)
+[![Go version](https://img.shields.io/github/go-mod/go-version/victordantasdev/ghostty-config)](go.mod)
+[![Coverage 100%](https://img.shields.io/badge/coverage-100%25-brightgreen)](#testing)
+
 A CLI for configuring [Ghostty](https://ghostty.org) — pick GLSL shaders and color themes from a curated list, audition them live in the running terminal, and have your selections written back to `~/.config/ghostty/config` automatically. Written in Go on top of [Bubble Tea](https://github.com/charmbracelet/bubbletea), [Lip Gloss](https://github.com/charmbracelet/lipgloss), and [Cobra](https://github.com/spf13/cobra).
 
 
@@ -213,6 +219,20 @@ The program embeds a starter shader pack and a `vesper` theme using Go's `embed`
 ├── go.sum
 └── Makefile
 ```
+
+## Testing
+
+The full test suite is in the same tree as the source (`*_test.go` files), with 100% statement coverage across every package that has executable code.
+
+```sh
+make test          # run the suite
+make test-race     # run with the race detector
+make cover         # produce coverage.out and print a per-function report
+make cover-html    # generate dist/coverage.html and open it
+make cover-check   # fail if total coverage drops below 100%
+```
+
+CI runs the same checks on every push and pull request against `main` on both Ubuntu and macOS via [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## Troubleshooting
 
