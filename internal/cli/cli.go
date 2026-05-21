@@ -2,6 +2,7 @@ package cli
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -12,6 +13,12 @@ import (
 	ghosttyconfig "ghostty-config"
 	"ghostty-config/internal/app"
 	"ghostty-config/internal/ghostty"
+)
+
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
 )
 
 func Execute() error {
@@ -35,6 +42,9 @@ From the main menu you can choose:
 
 Every change is written to the Ghostty config and a reload is triggered
 so the running terminal updates immediately.`,
+		Version:       fmt.Sprintf("%s (commit %s, built %s)", version, commit, date),
+		SilenceUsage:  true,
+		SilenceErrors: false,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return run(opts)
 		},
