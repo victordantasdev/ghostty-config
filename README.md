@@ -24,6 +24,14 @@ Ghostty supports `custom-shader` entries (GLSL post-processing effects) and `the
 
 ## Installation
 
+### Install with Homebrew (macOS and Linux)
+
+```sh
+brew install victordantasdev/tap/ghostty-config
+```
+
+This installs from the [homebrew-tap](https://github.com/victordantasdev/homebrew-tap) and automatically clears the macOS Gatekeeper quarantine attribute, so the binary runs without manual intervention. Upgrade later with `brew upgrade ghostty-config`.
+
 ### Download a prebuilt binary
 
 Each tagged release publishes self-contained binaries for **macOS (Intel and Apple Silicon)** and **Linux (amd64 and arm64)** on the [Releases page](https://github.com/victordantasdev/ghostty-config/releases). Shaders and themes are embedded in the binary via `//go:embed` and seeded to `~/.config/ghostty/` on first launch — no extra files needed.
