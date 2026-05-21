@@ -1,0 +1,113 @@
+version: 2
+
+project_name: ghostty-config
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: ghostty-config
+    main: ./cmd/ghostty-config
+    binary: ghostty-config
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X ghostty-config/internal/cli.version={{.Version}}
+      - -X ghostty-config/internal/cli.commit={{.Commit}}
+      - -X ghostty-config/internal/cli.date={{.Date}}
+
+archives:
+  - id: default
+    formats:
+      - tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+    files:
+      - README.md
+      - LICENSE*
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: git
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+      - "Merge pull request"
+      - "Merge branch"
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: Bug fixes
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: Performance
+      regexp: "^.*perf[(\\w)]*:+.*$"
+      order: 2
+    - title: Refactors
+      regexp: "^.*refactor[(\\w)]*:+.*$"
+      order: 3
+    - title: Others
+      order: 999
+
+release:
+  github:
+    owner: victordantasdev
+    name: ghostty-config
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## ghostty-config {{ .Tag }}
+
+    Self-contained CLI for configuring Ghostty — shaders and themes are embedded
+    in the binary and seeded to `~/.config/ghostty/` on first launch.
+
+    ### Install
+
+    Download the archive for your platform below, extract, and put the
+    `ghostty-config` binary somewhere on your `$PATH`.
+
+    ```sh
+    # macOS arm64 example
+    curl -sSL https://github.com/victordantasdev/ghostty-config/releases/download/{{ .Tag }}/ghostty-config_{{ .Version }}_darwin_arm64.tar.gz \
+      | tar -xz ghostty-config
+    sudo install -m 755 ghostty-config /usr/local/bin/ghostty-config
+    ```
+
+# Homebrew tap — uncomment and create the homebrew-tap repo first.
+# brews:
+#   - name: ghostty-config
+#     repository:
+#       owner: victordantasdev
+#       name: homebrew-tap
+#     homepage: "https://github.com/victordantasdev/ghostty-config"
+#     description: "Configure Ghostty shaders and themes with live preview"
+#     license: "MIT"
+#     install: |
+#       bin.install "ghostty-config"
+#     test: |
+#       system "#{bin}/ghostty-config", "--version"
