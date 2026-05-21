@@ -98,16 +98,25 @@ release:
     sudo install -m 755 ghostty-config /usr/local/bin/ghostty-config
     ```
 
-# Homebrew tap — uncomment and create the homebrew-tap repo first.
-# brews:
-#   - name: ghostty-config
-#     repository:
-#       owner: victordantasdev
-#       name: homebrew-tap
-#     homepage: "https://github.com/victordantasdev/ghostty-config"
-#     description: "Configure Ghostty shaders and themes with live preview"
-#     license: "MIT"
-#     install: |
-#       bin.install "ghostty-config"
-#     test: |
-#       system "#{bin}/ghostty-config", "--version"
+homebrew_casks:
+  - name: ghostty-config
+    repository:
+      owner: victordantasdev
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    homepage: "https://github.com/victordantasdev/ghostty-config"
+    description: "Configure Ghostty shaders and themes with live preview"
+    license: "MIT"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    commit_msg_template: "chore(cask): update {{ .ProjectName }} to {{ .Tag }}"
+    binaries:
+      - ghostty-config
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/ghostty-config"]
+          end
